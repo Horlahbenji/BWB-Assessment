@@ -1,16 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- ✅ AMPLITUDE SDK + TRACKING (placed immediately after <head>) -->
+  <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.8.0-min.js.gz"></script>
+  <script>
+    const amplitude = window.amplitude;
+
+    amplitude.init('fba71a00741c2ed8c18989e197f2f455', {
+      autocapture: {
+        pageViews: true,
+        sessions: true,
+        formInteractions: true,
+        elementInteractions: true,
+      }
+    });
+
+    if (window.sessionReplay) {
+      const replay = window.sessionReplay.plugin({ sampleRate: 1 });
+      amplitude.add(replay);
+    }
+
+    function track(eventName, props = {}) {
+      amplitude.track(eventName, {
+        ...props,
+        timestamp: new Date().toISOString(),
+        page: window.location.pathname,
+      });
+    }
+
+    window.addEventListener('load', () => {
+      track('Page Viewed', { page_title: document.title });
+    });
+
+    function openModal(type) {
+      document.getElementById('modal-' + type).classList.add('open');
+      track('Modal Opened', { modal_type: type });
+    }
+
+    function closeModal(type, event) {
+      if (!event || event.target === document.getElementById('modal-' + type)) {
+        document.getElementById('modal-' + type).classList.remove('open');
+      }
+    }
+
+    function submitSignup() {
+      const name = document.getElementById('signup-name').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      if (!name || !email) { showToast('⚠ Please fill in all fields.'); return; }
+      amplitude.setUserId(email);
+      const identify = new amplitude.Identify();
+      identify.set('name', name);
+      identify.set('plan', 'starter');
+      amplitude.identify(identify);
+      track('Sign Up Completed', { name, email, plan: 'starter' });
+      closeModal('signup');
+      showToast('🎉 Welcome ' + name.split(' ')[0] + '!');
+    }
+
+    function submitDemo() {
+      const name = document.getElementById('demo-name').value.trim();
+      const email = document.getElementById('demo-email').value.trim();
+      const size = document.getElementById('demo-size').value.trim();
+      if (!name || !email) { showToast('⚠ Please fill in all fields.'); return; }
+      amplitude.setUserId(email);
+      const identify = new amplitude.Identify();
+      identify.set('name', name);
+      identify.set('company_size', size);
+      amplitude.identify(identify);
+      track('Demo Requested', { name, email, company_size: size });
+      closeModal('demo');
+      showToast('✅ Demo request sent!');
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.innerHTML = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3500);
+    }
+  </script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BWBMart — Collaborative Work, Reimagined</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-
-  <!-- ✅ AMPLITUDE SDK -->
-  <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
-  <script src="https://cdn.amplitude.com/libs/plugin-session-replay-browser-1.8.0-min.js.gz"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -667,23 +743,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ─────────────────────────────────────────────
-  // ✅  AMPLITUDE INIT
-  // Replace the API key below with the one from
-  // your Amplitude workspace (Browser SDK key).
-  // ─────────────────────────────────────────────
-  const AMPLITUDE_API_KEY = '06840cc86ae6624786cb2f56a71981d1';
 
-  const sessionReplayTracking = window.sessionReplay.plugin({ sampleRate: 1 });
-  window.amplitude.add(sessionReplayTracking);
-  window.amplitude.init(AMPLITUDE_API_KEY, {
-    autocapture: {
-      elementInteractions: true,   // auto-captures clicks & input changes
-      pageViews: true,
-      sessions: true,
-      formInteractions: true,
-    }
-  });
 
   // ─────────────────────────────────────────────
   // Helper: fire a named Amplitude event
